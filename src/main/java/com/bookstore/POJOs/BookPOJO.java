@@ -2,24 +2,25 @@ package com.bookstore.POJOs;
 
 import com.bookstore.CompositeType.PersonName;
 import com.bookstore.CompositeType.Size2D;
-import com.bookstore.Entity.GenreEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class BookPOJO {
-    String isbn;
-    String title;
-    Integer price;
-    String edition;
-    String cover;
-    Integer pageNum;
-    String publisher;
-    Size2D physicalSize;
-    List<PersonName> authors;
-    Short stock;
-    List<GenreEntity> genres;
+    private String isbn;
+    private String title;
+    private Integer price;
+    private String edition;
+    private String cover;
+    private Integer pageNum;
+    private String publisher;
+    private Size2D physicalSize;
+    private List<PersonName> authors;
+    private Short stock;
+    private List<GenrePOJO> genres;
 }

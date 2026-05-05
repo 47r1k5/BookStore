@@ -1,27 +1,36 @@
-/*package com.bookstore.Security;
+package com.bookstore.Security;
 
+import com.bookstore.Entity.UserEntity;
 import com.bookstore.Repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.*;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
-@RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UserRepository userRepository;
+    private final UserRepository repository;
+
+    public CustomUserDetailsService(UserRepository repository) {
+        this.repository = repository;
+    }
 
     @Override
-    public UserDetails loadUserByUsername(String username)
-            throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        UserEntity user = repository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "User not found with username: " + username
+                ));
 
-        var user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername())
-                .password(user.getPass())
-                .roles(user.getPermissions().toString())
-                .build();
+        return new User(
+                user.getUsername(),
+                user.getPass(),
+                List.of(new SimpleGrantedAuthority("ROLE_" + user.getPermissions().name()))
+        );
     }
-}*/
+}

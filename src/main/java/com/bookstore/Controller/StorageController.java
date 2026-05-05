@@ -1,27 +1,37 @@
 package com.bookstore.Controller;
 
-import com.bookstore.Entity.GenreEntity;
 import com.bookstore.POJOs.BookPOJO;
+import com.bookstore.POJOs.GenrePOJO;
 import com.bookstore.POJOs.MoviePOJO;
 import com.bookstore.POJOs.MusicPOJO;
 import com.bookstore.Service.BookService;
 import com.bookstore.Service.GenreService;
 import com.bookstore.Service.MovieService;
 import com.bookstore.Service.MusicService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/bookshop")
 public class StorageController {
+
     private final BookService bookService;
     private final MovieService movieService;
     private final MusicService musicService;
     private final GenreService genreService;
 
-    @Autowired
-    public StorageController(BookService bookService, MovieService movieService, MusicService musicService, GenreService genreService) {
+    public StorageController(
+            BookService bookService,
+            MovieService movieService,
+            MusicService musicService,
+            GenreService genreService
+    ) {
         this.bookService = bookService;
         this.movieService = movieService;
         this.musicService = musicService;
@@ -29,78 +39,73 @@ public class StorageController {
     }
 
     @PostMapping("/books")
-    public String addBook(@RequestBody BookPOJO book) {
-        ResponseEntity<String> response = bookService.addBook(book);
-        return response.getBody();
+    public ResponseEntity<String> addBook(@RequestBody BookPOJO book) {
+        return bookService.addBook(book);
     }
 
     @PutMapping("/books/{isbn}")
-    public String updateBook(@PathVariable String isbn,
-                               @RequestBody BookPOJO updatedEntity) {
-        ResponseEntity<String> response = bookService.updateBook(isbn, updatedEntity);
-        return response.getBody();
+    public ResponseEntity<String> updateBook(
+            @PathVariable String isbn,
+            @RequestBody BookPOJO updatedBook
+    ) {
+        return bookService.updateBook(isbn, updatedBook);
     }
 
     @DeleteMapping("/books/{isbn}")
-    public String deleteBook(@PathVariable String isbn) {
-        ResponseEntity<String> response = bookService.deleteBook(isbn);
-        return response.getBody();
-    }
-
-
-    @PostMapping("/music")
-    public String addMusic(@RequestBody MusicPOJO music) {
-        ResponseEntity<String> response = musicService.addMusic(music);
-        return response.getBody();
-    }
-
-    @PutMapping("/music/{id}")
-    public String updateMusic(@PathVariable Long id,
-                                @RequestBody MusicPOJO updatedEntity) {
-        ResponseEntity<String> response = musicService.updateMusic(id, updatedEntity);
-        return response.getBody();
-    }
-
-    @DeleteMapping("/music/{id}")
-    public String deleteMusic(@PathVariable Long id) {
-        ResponseEntity<String> response = musicService.deleteMusic(id);
-        return response.getBody();
+    public ResponseEntity<String> deleteBook(@PathVariable String isbn) {
+        return bookService.deleteBook(isbn);
     }
 
     @PostMapping("/movies")
-    public String addMovie(@RequestBody MoviePOJO movie) {
-        ResponseEntity<String> response = movieService.addMovie(movie);
-        return response.getBody();
-
+    public ResponseEntity<String> addMovie(@RequestBody MoviePOJO movie) {
+        return movieService.addMovie(movie);
     }
 
     @PutMapping("/movies/{id}")
-    public String updateMovie(@PathVariable Long id,
-                                @RequestBody MoviePOJO updatedEntity) {
-        ResponseEntity<String> response = movieService.updateMovie(id, updatedEntity);
-        return response.getBody();
+    public ResponseEntity<String> updateMovie(
+            @PathVariable Long id,
+            @RequestBody MoviePOJO updatedMovie
+    ) {
+        return movieService.updateMovie(id, updatedMovie);
     }
 
     @DeleteMapping("/movies/{id}")
-    public String deleteMovie(@PathVariable Long id) {
-        ResponseEntity<String> response = movieService.deleteMovie(id);
-        return response.getBody();
+    public ResponseEntity<String> deleteMovie(@PathVariable Long id) {
+        return movieService.deleteMovie(id);
     }
 
-    @PostMapping
-    public ResponseEntity<String> addGenre(@RequestBody GenreEntity genre) {
+    @PostMapping("/music")
+    public ResponseEntity<String> addMusic(@RequestBody MusicPOJO music) {
+        return musicService.addMusic(music);
+    }
+
+    @PutMapping("/music/{id}")
+    public ResponseEntity<String> updateMusic(
+            @PathVariable Long id,
+            @RequestBody MusicPOJO updatedMusic
+    ) {
+        return musicService.updateMusic(id, updatedMusic);
+    }
+
+    @DeleteMapping("/music/{id}")
+    public ResponseEntity<String> deleteMusic(@PathVariable Long id) {
+        return musicService.deleteMusic(id);
+    }
+
+    @PostMapping("/genres")
+    public ResponseEntity<String> addGenre(@RequestBody GenrePOJO genre) {
         return genreService.addGenre(genre);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/genres/{id}")
     public ResponseEntity<String> updateGenre(
             @PathVariable Integer id,
-            @RequestBody GenreEntity genre
+            @RequestBody GenrePOJO genre
     ) {
         return genreService.updateGenre(id, genre);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/genres/{id}")
     public ResponseEntity<String> deleteGenre(@PathVariable Integer id) {
         return genreService.deleteGenre(id);
     }

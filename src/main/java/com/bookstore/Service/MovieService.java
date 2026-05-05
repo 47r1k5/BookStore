@@ -1,73 +1,70 @@
 package com.bookstore.Service;
 
-import com.bookstore.Entity.*;
-import com.bookstore.Enum.CoverType;
-import com.bookstore.POJOs.BookPOJO;
+import com.bookstore.Entity.GenreEntity;
+import com.bookstore.Entity.MovieEntity;
+import com.bookstore.Entity.MoviegenreEntity;
+import com.bookstore.POJOs.GenrePOJO;
 import com.bookstore.POJOs.MoviePOJO;
-import com.bookstore.POJOs.MusicPOJO;
 import com.bookstore.Repository.GenreRepository;
 import com.bookstore.Repository.MovieGenreRepository;
 import com.bookstore.Repository.MovieRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class MovieService {
+
     private final MovieRepository movieRepository;
     private final GenreService genreService;
     private final MovieGenreRepository movieGenreRepository;
-    @Autowired
-    public MovieService(MovieRepository movieRepository, GenreService genreService, GenreRepository genreRepository, MovieGenreRepository movieGenreRepository){
+
+    public MovieService(
+            MovieRepository movieRepository,
+            GenreService genreService,
+            GenreRepository genreRepository,
+            MovieGenreRepository movieGenreRepository
+    ) {
         this.movieRepository = movieRepository;
         this.genreService = genreService;
         this.movieGenreRepository = movieGenreRepository;
     }
 
-    public List<MoviePOJO> getAllMovies(){
-        List<MovieEntity> movieEntities = movieRepository.findAll();
-        List<MoviePOJO> movieList = new ArrayList<>();
-        for (MovieEntity movie:movieEntities){
-            List<MoviegenreEntity> moviegenreEntities=genreService.getOneMovieGenres(movie);
-            List<GenreEntity> genres=new ArrayList<>();
-            for (MoviegenreEntity moviegenreEntity:moviegenreEntities){
-                genres.add(moviegenreEntity.getGenre());
-            }
-            movieList.add(new MoviePOJO(movie.getId(),movie.getTitle(),movie.getDirector(),movie.getReleaseYear(),movie.getPrice(),movie.getLengthMin(),movie.getStock(),genres));
-        }
-
-        return movieList;
+    public List<MoviePOJO> getAllMovies() {
+        return movieRepository.findAll()
+                .stream()
+                .map(this::mapMovieToPOJO)
+                .toList();
     }
 
     public MoviePOJO getMovieById(Integer id) {
         MovieEntity movie = movieRepository.findMovieEntityById(id);
-        List<MoviegenreEntity> moviegenreEntities=genreService.getOneMovieGenres(movie);
-        List<GenreEntity> genres=new ArrayList<>();
-        for (MoviegenreEntity moviegenreEntity:moviegenreEntities){
-            genres.add(moviegenreEntity.getGenre());
-        }
-        return new MoviePOJO(movie.getId(),movie.getTitle(),movie.getDirector(),movie.getReleaseYear(),movie.getPrice(),movie.getLengthMin(),movie.getStock(),genres);
-
+        return mapMovieToPOJO(movie);
     }
 
-    public ResponseEntity<String> addMovie(MoviePOJO movie){
-        try{
-            MovieEntity movieEntity = new MovieEntity(movie.getTitle(),movie.getDirector(),movie.getReleaseYear(),movie.getPrice(),movie.getLengthMin(),movie.getStock());
+    public ResponseEntity<String> addMovie(MoviePOJO movie) {
+        try {
+            MovieEntity movieEntity = new MovieEntity(
+                    movie.getTitle(),
+                    movie.getDirector(),
+                    movie.getReleaseYear(),
+                    movie.getPrice(),
+                    movie.getLengthMin(),
+                    movie.getStock()
+            );
 
             movieRepository.save(movieEntity);
 
-            for(var g: movie.getGenres()){
-
-                movieGenreRepository.save(new MoviegenreEntity(movieEntity,g));
+            for (GenreEntity genre : genreService.getManagedGenresFromPOJOs(movie.getGenres())) {
+                movieGenreRepository.save(new MoviegenreEntity(movieEntity, genre));
             }
+
             return new ResponseEntity<>("Adding new movie was successful", HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>("Adding new movie failed: "+e, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Adding new movie failed: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -94,7 +91,6 @@ public class MovieService {
             }
 
             return new ResponseEntity<>("Updating movie was successful", HttpStatus.OK);
-
         } catch (Exception e) {
             return new ResponseEntity<>("Updating movie failed: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -110,13 +106,35 @@ public class MovieService {
             }
 
             movieGenreRepository.deleteAll(movieGenreRepository.findByMovie(movie));
-
             movieRepository.delete(movie);
 
             return new ResponseEntity<>("Deleting movie was successful", HttpStatus.OK);
-
         } catch (Exception e) {
             return new ResponseEntity<>("Deleting movie failed: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    private MoviePOJO mapMovieToPOJO(MovieEntity movie) {
+        if (movie == null) {
+            return null;
+        }
+
+        List<GenrePOJO> genres = genreService.mapGenresToPOJOs(
+                genreService.getOneMovieGenres(movie)
+                        .stream()
+                        .map(MoviegenreEntity::getGenre)
+                        .toList()
+        );
+
+        return new MoviePOJO(
+                movie.getId(),
+                movie.getTitle(),
+                movie.getDirector(),
+                movie.getReleaseYear(),
+                movie.getPrice(),
+                movie.getLengthMin(),
+                movie.getStock(),
+                genres
+        );
     }
 }

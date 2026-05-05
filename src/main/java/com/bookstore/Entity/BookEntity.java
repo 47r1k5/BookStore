@@ -3,6 +3,7 @@ package com.bookstore.Entity;
 import com.bookstore.CompositeType.NameTypeArrayUserType;
 import com.bookstore.CompositeType.PersonName;
 import com.bookstore.CompositeType.Size2D;
+import com.bookstore.CompositeType.Size2DUserType;
 import com.bookstore.Enum.CoverType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -51,6 +52,7 @@ public class BookEntity implements Serializable {
     @Column(name = "publisher", nullable = false, length = 50)
     private String publisher;
 
+    @Type(Size2DUserType.class)
     @Column(name = "physical_size", columnDefinition = "size_2d_type")
     private Size2D physicalSize;
 

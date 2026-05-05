@@ -1,16 +1,23 @@
 package com.bookstore.Service;
 
-import com.bookstore.Entity.*;
+import com.bookstore.Entity.BookEntity;
+import com.bookstore.Entity.BookgenreEntity;
+import com.bookstore.Entity.GenreEntity;
+import com.bookstore.Entity.MovieEntity;
+import com.bookstore.Entity.MoviegenreEntity;
+import com.bookstore.Entity.MusicEntity;
+import com.bookstore.Entity.MusicgenreEntity;
+import com.bookstore.POJOs.GenrePOJO;
 import com.bookstore.Repository.BookGenreRepository;
 import com.bookstore.Repository.GenreRepository;
 import com.bookstore.Repository.MovieGenreRepository;
 import com.bookstore.Repository.MusicGenreRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,29 +26,92 @@ import java.util.stream.Collectors;
 
 @Service
 public class GenreService {
+
     private final GenreRepository genreRepository;
     private final BookGenreRepository bookGenreRepository;
     private final MovieGenreRepository movieGenreRepository;
     private final MusicGenreRepository musicGenreRepository;
 
-    @Autowired
-    public GenreService(GenreRepository genreRepository, BookGenreRepository bookGenreRepository, MovieGenreRepository movieGenreRepository, MusicGenreRepository musicGenreRepository) {
+    public GenreService(
+            GenreRepository genreRepository,
+            BookGenreRepository bookGenreRepository,
+            MovieGenreRepository movieGenreRepository,
+            MusicGenreRepository musicGenreRepository
+    ) {
         this.genreRepository = genreRepository;
         this.bookGenreRepository = bookGenreRepository;
         this.movieGenreRepository = movieGenreRepository;
         this.musicGenreRepository = musicGenreRepository;
     }
 
-    public List<GenreEntity> getAllGenres(){
-        return genreRepository.findAll();
+    public List<GenrePOJO> getAllGenres() {
+        return genreRepository.findAll()
+                .stream()
+                .map(this::mapGenreToPOJO)
+                .toList();
     }
 
-    public List<BookgenreEntity> getOneBooksGenres(BookEntity book){
-        return bookGenreRepository.findByBookIsbn(book);
+    public GenrePOJO getGenreById(Integer id) {
+        return mapGenreToPOJO(genreRepository.findById(id));
     }
 
-    public GenreEntity getGenre(Integer id){
+    public GenreEntity getGenre(Integer id) {
         return genreRepository.findById(id);
+    }
+
+    public GenrePOJO mapGenreToPOJO(GenreEntity genre) {
+        if (genre == null) {
+            return null;
+        }
+
+        Integer mainGenreId = genre.getMainGenre() == null
+                ? null
+                : genre.getMainGenre().getId();
+
+        return new GenrePOJO(
+                genre.getId(),
+                genre.getGenreName(),
+                mainGenreId
+        );
+    }
+
+    public List<GenrePOJO> mapGenresToPOJOs(List<GenreEntity> genres) {
+        if (genres == null) {
+            return Collections.emptyList();
+        }
+
+        return genres.stream()
+                .map(this::mapGenreToPOJO)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    public List<GenreEntity> getManagedGenresFromPOJOs(List<GenrePOJO> genres) {
+        if (genres == null || genres.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<Integer> genreIds = genres.stream()
+                .filter(Objects::nonNull)
+                .map(GenrePOJO::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (genreIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<GenreEntity> managedGenres = genreRepository.findAllByIdIn(genreIds);
+
+        if (managedGenres.size() != genreIds.size()) {
+            throw new IllegalArgumentException("One or more genres do not exist");
+        }
+
+        return managedGenres;
+    }
+
+    public List<BookgenreEntity> getOneBooksGenres(BookEntity book) {
+        return bookGenreRepository.findByBookIsbn(book);
     }
 
     public List<MusicgenreEntity> getOneMusicsGenres(MusicEntity music) {
@@ -52,12 +122,8 @@ public class GenreService {
         return movieGenreRepository.findByMovie(movie);
     }
 
-    public void updateBookGenres(BookEntity book, List<GenreEntity> updatedGenres) {
-        Set<Integer> updatedGenreIds = updatedGenres.stream()
-                .filter(Objects::nonNull)
-                .map(GenreEntity::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+    public void updateBookGenres(BookEntity book, List<GenrePOJO> updatedGenres) {
+        Set<Integer> updatedGenreIds = getGenreIds(updatedGenres);
 
         List<BookgenreEntity> existingBookGenres =
                 bookGenreRepository.findByBookIsbn(book);
@@ -70,11 +136,7 @@ public class GenreService {
             return;
         }
 
-        List<GenreEntity> managedGenres = genreRepository.findAllByIdIn(updatedGenreIds);
-
-        if (managedGenres.size() != updatedGenreIds.size()) {
-            throw new IllegalArgumentException("One or more genres do not exist");
-        }
+        List<GenreEntity> managedGenres = getManagedGenresFromPOJOs(updatedGenres);
 
         bookGenreRepository.deleteAll(existingBookGenres);
 
@@ -85,12 +147,8 @@ public class GenreService {
         bookGenreRepository.saveAll(newBookGenres);
     }
 
-    public void updateMovieGenres(MovieEntity movie, List<GenreEntity> updatedGenres) {
-        Set<Integer> updatedGenreIds = updatedGenres.stream()
-                .filter(Objects::nonNull)
-                .map(GenreEntity::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+    public void updateMovieGenres(MovieEntity movie, List<GenrePOJO> updatedGenres) {
+        Set<Integer> updatedGenreIds = getGenreIds(updatedGenres);
 
         List<MoviegenreEntity> existingMovieGenres =
                 movieGenreRepository.findByMovie(movie);
@@ -103,11 +161,7 @@ public class GenreService {
             return;
         }
 
-        List<GenreEntity> managedGenres = genreRepository.findAllByIdIn(updatedGenreIds);
-
-        if (managedGenres.size() != updatedGenreIds.size()) {
-            throw new IllegalArgumentException("One or more movie genres do not exist");
-        }
+        List<GenreEntity> managedGenres = getManagedGenresFromPOJOs(updatedGenres);
 
         movieGenreRepository.deleteAll(existingMovieGenres);
 
@@ -118,12 +172,8 @@ public class GenreService {
         movieGenreRepository.saveAll(newMovieGenres);
     }
 
-    public void updateMusicGenres(MusicEntity music, List<GenreEntity> updatedGenres) {
-        Set<Integer> updatedGenreIds = updatedGenres.stream()
-                .filter(Objects::nonNull)
-                .map(GenreEntity::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+    public void updateMusicGenres(MusicEntity music, List<GenrePOJO> updatedGenres) {
+        Set<Integer> updatedGenreIds = getGenreIds(updatedGenres);
 
         List<MusicgenreEntity> existingMusicGenres =
                 musicGenreRepository.findByMusic(music);
@@ -136,11 +186,7 @@ public class GenreService {
             return;
         }
 
-        List<GenreEntity> managedGenres = genreRepository.findAllByIdIn(updatedGenreIds);
-
-        if (managedGenres.size() != updatedGenreIds.size()) {
-            throw new IllegalArgumentException("One or more music genres do not exist");
-        }
+        List<GenreEntity> managedGenres = getManagedGenresFromPOJOs(updatedGenres);
 
         musicGenreRepository.deleteAll(existingMusicGenres);
 
@@ -152,14 +198,12 @@ public class GenreService {
     }
 
     @Transactional
-    public ResponseEntity<String> addGenre(GenreEntity genre) {
+    public ResponseEntity<String> addGenre(GenrePOJO genre) {
         try {
-            if (genre.getGenreName() == null || genre.getGenreName().isBlank()) {
-                return new ResponseEntity<>("Genre name cannot be empty", HttpStatus.BAD_REQUEST);
-            }
+            ResponseEntity<String> validationResponse = validateGenre(genre);
 
-            if (genre.getGenreName().length() > 20) {
-                return new ResponseEntity<>("Genre name cannot be longer than 20 characters", HttpStatus.BAD_REQUEST);
+            if (validationResponse != null) {
+                return validationResponse;
             }
 
             if (genreRepository.existsByGenreNameIgnoreCase(genre.getGenreName())) {
@@ -167,14 +211,16 @@ public class GenreService {
             }
 
             GenreEntity newGenre = new GenreEntity();
-            newGenre.setGenreName(genre.getGenreName());
+            newGenre.setGenreName(genre.getGenreName().trim());
 
-            if (genre.getMainGenre() != null && genre.getMainGenre().getId() != null) {
-                GenreEntity mainGenre = genreRepository.findById(genre.getMainGenre().getId());
+            if (genre.getMainGenreId() != null) {
+                GenreEntity mainGenre = genreRepository.findById(genre.getMainGenreId());
+
+                if (mainGenre == null) {
+                    return new ResponseEntity<>("Main genre not found with ID: " + genre.getMainGenreId(), HttpStatus.NOT_FOUND);
+                }
 
                 newGenre.setMainGenre(mainGenre);
-            } else {
-                newGenre.setMainGenre(null);
             }
 
             genreRepository.save(newGenre);
@@ -187,7 +233,7 @@ public class GenreService {
     }
 
     @Transactional
-    public ResponseEntity<String> updateGenre(Integer id, GenreEntity updatedGenre) {
+    public ResponseEntity<String> updateGenre(Integer id, GenrePOJO updatedGenre) {
         try {
             GenreEntity genre = genreRepository.findById(id);
 
@@ -195,12 +241,10 @@ public class GenreService {
                 return new ResponseEntity<>("Genre not found with ID: " + id, HttpStatus.NOT_FOUND);
             }
 
-            if (updatedGenre.getGenreName() == null || updatedGenre.getGenreName().isBlank()) {
-                return new ResponseEntity<>("Genre name cannot be empty", HttpStatus.BAD_REQUEST);
-            }
+            ResponseEntity<String> validationResponse = validateGenre(updatedGenre);
 
-            if (updatedGenre.getGenreName().length() > 20) {
-                return new ResponseEntity<>("Genre name cannot be longer than 20 characters", HttpStatus.BAD_REQUEST);
+            if (validationResponse != null) {
+                return validationResponse;
             }
 
             Optional<GenreEntity> genreWithSameName =
@@ -210,16 +254,20 @@ public class GenreService {
                 return new ResponseEntity<>("Another genre already exists with this name: " + updatedGenre.getGenreName(), HttpStatus.CONFLICT);
             }
 
-            genre.setGenreName(updatedGenre.getGenreName());
+            genre.setGenreName(updatedGenre.getGenreName().trim());
 
-            if (updatedGenre.getMainGenre() != null && updatedGenre.getMainGenre().getId() != null) {
-                Integer mainGenreId = updatedGenre.getMainGenre().getId();
+            if (updatedGenre.getMainGenreId() != null) {
+                Integer mainGenreId = updatedGenre.getMainGenreId();
 
                 if (mainGenreId.equals(id)) {
                     return new ResponseEntity<>("A genre cannot be its own main genre", HttpStatus.BAD_REQUEST);
                 }
 
                 GenreEntity mainGenre = genreRepository.findById(mainGenreId);
+
+                if (mainGenre == null) {
+                    return new ResponseEntity<>("Main genre not found with ID: " + mainGenreId, HttpStatus.NOT_FOUND);
+                }
 
                 genre.setMainGenre(mainGenre);
             } else {
@@ -255,7 +303,6 @@ public class GenreService {
             }
 
             genreRepository.saveAll(subGenres);
-
             genreRepository.delete(genre);
 
             return new ResponseEntity<>("Deleting genre was successful", HttpStatus.OK);
@@ -263,5 +310,33 @@ public class GenreService {
         } catch (Exception e) {
             return new ResponseEntity<>("Deleting genre failed: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    private Set<Integer> getGenreIds(List<GenrePOJO> genres) {
+        if (genres == null) {
+            return Collections.emptySet();
+        }
+
+        return genres.stream()
+                .filter(Objects::nonNull)
+                .map(GenrePOJO::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    private ResponseEntity<String> validateGenre(GenrePOJO genre) {
+        if (genre == null) {
+            return new ResponseEntity<>("Genre cannot be null", HttpStatus.BAD_REQUEST);
+        }
+
+        if (genre.getGenreName() == null || genre.getGenreName().isBlank()) {
+            return new ResponseEntity<>("Genre name cannot be empty", HttpStatus.BAD_REQUEST);
+        }
+
+        if (genre.getGenreName().length() > 20) {
+            return new ResponseEntity<>("Genre name cannot be longer than 20 characters", HttpStatus.BAD_REQUEST);
+        }
+
+        return null;
     }
 }

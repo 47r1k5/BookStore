@@ -1,9 +1,7 @@
 package com.bookstore.Service;
 
-import com.bookstore.Entity.CartEntity;
 import com.bookstore.Entity.UserEntity;
 import com.bookstore.Enum.PermissionType;
-import com.bookstore.POJOs.CartItemPOJO;
 import com.bookstore.POJOs.SafeUserPOJO;
 import com.bookstore.POJOs.UserCartPOJO;
 import com.bookstore.POJOs.UserPOJO;
@@ -14,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -24,7 +21,11 @@ public class UserService {
     private final CartRepository cartRepository;
     private final CartService cartService;
 
-    public UserService(UserRepository userRepository, CartRepository cartRepository, CartService cartService) {
+    public UserService(
+            UserRepository userRepository,
+            CartRepository cartRepository,
+            CartService cartService
+    ) {
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
         this.cartService = cartService;
@@ -53,23 +54,12 @@ public class UserService {
             }
 
             UserEntity userEntity = new UserEntity();
-
             userEntity.setUsername(user.getUsername().trim());
             userEntity.setEmail(user.getEmail().trim());
             userEntity.setPass(user.getPass());
             userEntity.setFullname(user.getFullname());
-
-            if (user.getPermissions() != null) {
-                userEntity.setPermissions(user.getPermissions());
-            } else {
-                userEntity.setPermissions(PermissionType.USER);
-            }
-
-            if (user.getRegular() != null) {
-                userEntity.setRegular(user.getRegular());
-            } else {
-                userEntity.setRegular(false);
-            }
+            userEntity.setPermissions(PermissionType.USER);
+            userEntity.setRegular(user.getRegular() != null ? user.getRegular() : false);
 
             userRepository.save(userEntity);
 
@@ -131,10 +121,6 @@ public class UserService {
                 user.setPass(updatedUser.getPass());
             }
 
-            if (updatedUser.getPermissions() != null) {
-                user.setPermissions(updatedUser.getPermissions());
-            }
-
             if (updatedUser.getRegular() != null) {
                 user.setRegular(updatedUser.getRegular());
             }
@@ -164,7 +150,6 @@ public class UserService {
             }
 
             cartRepository.deleteByIdCartId(id);
-
             userRepository.delete(user);
 
             return new ResponseEntity<>("Deleting user was successful", HttpStatus.OK);
@@ -172,6 +157,85 @@ public class UserService {
         } catch (Exception e) {
             return new ResponseEntity<>(
                     "Deleting user failed: " + e.getMessage(),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    public ResponseEntity<?> getUserById(Integer id) {
+        try {
+            UserEntity user = userRepository.findById(id).orElse(null);
+
+            if (user == null) {
+                return new ResponseEntity<>(
+                        "User not found with ID: " + id,
+                        HttpStatus.NOT_FOUND
+                );
+            }
+
+            UserCartPOJO cart = cartService.buildUserCartPOJO(id);
+
+            SafeUserPOJO safeUser = new SafeUserPOJO(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getEmail(),
+                    user.getFullname(),
+                    user.getPermissions(),
+                    user.getRegular(),
+                    cart
+            );
+
+            return new ResponseEntity<>(safeUser, HttpStatus.OK);
+
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                    "Getting user failed: " + e.getMessage(),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    public Integer getUserIdByUsername(String username) {
+        return userRepository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "User not found with username: " + username
+                ))
+                .getId();
+    }
+
+    @Transactional
+    public ResponseEntity<String> changeUserPermission(
+            Integer id,
+            PermissionType permission
+    ) {
+        try {
+            if (permission == null) {
+                return new ResponseEntity<>(
+                        "Permission cannot be empty",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+            UserEntity user = userRepository.findById(id).orElse(null);
+
+            if (user == null) {
+                return new ResponseEntity<>(
+                        "User not found with ID: " + id,
+                        HttpStatus.NOT_FOUND
+                );
+            }
+
+            user.setPermissions(permission);
+            userRepository.save(user);
+
+            return new ResponseEntity<>(
+                    "Changing user permission was successful",
+                    HttpStatus.OK
+            );
+
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                    "Changing user permission failed: " + e.getMessage(),
                     HttpStatus.BAD_REQUEST
             );
         }
@@ -235,38 +299,5 @@ public class UserService {
         }
 
         return null;
-    }
-
-    public ResponseEntity<?> getUserById(Integer id) {
-        try {
-            UserEntity user = userRepository.findById(id).orElse(null);
-
-            if (user == null) {
-                return new ResponseEntity<>(
-                        "User not found with ID: " + id,
-                        HttpStatus.NOT_FOUND
-                );
-            }
-
-            UserCartPOJO cart = cartService.buildUserCartPOJO(id);
-
-            SafeUserPOJO safeUser = new SafeUserPOJO(
-                    user.getId(),
-                    user.getUsername(),
-                    user.getEmail(),
-                    user.getFullname(),
-                    user.getPermissions(),
-                    user.getRegular(),
-                    cart
-            );
-
-            return new ResponseEntity<>(safeUser, HttpStatus.OK);
-
-        } catch (Exception e) {
-            return new ResponseEntity<>(
-                    "Getting user failed: " + e.getMessage(),
-                    HttpStatus.BAD_REQUEST
-            );
-        }
     }
 }

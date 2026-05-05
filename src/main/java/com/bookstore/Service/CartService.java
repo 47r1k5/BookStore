@@ -41,10 +41,27 @@ public class CartService {
         this.musicGenreRepository = musicGenreRepository;
     }
 
+    private GenrePOJO mapGenreToPOJO(GenreEntity genre) {
+        if (genre == null) {
+            return null;
+        }
+
+        Integer mainGenreId = genre.getMainGenre() == null
+                ? null
+                : genre.getMainGenre().getId();
+
+        return new GenrePOJO(
+                genre.getId(),
+                genre.getGenreName(),
+                mainGenreId
+        );
+    }
+
     private BookPOJO mapBookToPOJO(BookEntity book) {
-        List<GenreEntity> genres = bookGenreRepository.findByBookIsbn(book)
+        List<GenrePOJO> genres = bookGenreRepository.findByBookIsbn(book)
                 .stream()
                 .map(BookgenreEntity::getGenre)
+                .map(this::mapGenreToPOJO)
                 .toList();
 
         return new BookPOJO(
@@ -61,10 +78,12 @@ public class CartService {
                 genres
         );
     }
+
     private MoviePOJO mapMovieToPOJO(MovieEntity movie) {
-        List<GenreEntity> genres = movieGenreRepository.findByMovie(movie)
+        List<GenrePOJO> genres = movieGenreRepository.findByMovie(movie)
                 .stream()
                 .map(MoviegenreEntity::getGenre)
+                .map(this::mapGenreToPOJO)
                 .toList();
 
         return new MoviePOJO(
@@ -80,9 +99,10 @@ public class CartService {
     }
 
     private MusicPOJO mapMusicToPOJO(MusicEntity music) {
-        List<GenreEntity> genres = musicGenreRepository.findByMusic(music)
+        List<GenrePOJO> genres = musicGenreRepository.findByMusic(music)
                 .stream()
                 .map(MusicgenreEntity::getGenre)
+                .map(this::mapGenreToPOJO)
                 .toList();
 
         return new MusicPOJO(

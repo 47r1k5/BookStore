@@ -1,12 +1,23 @@
 package com.bookstore.Controller;
 
+import com.bookstore.Enum.PermissionType;
 import com.bookstore.Enum.ProductType;
 import com.bookstore.POJOs.CartItemPOJO;
+import com.bookstore.POJOs.PurchaseRequestPOJO;
 import com.bookstore.POJOs.UserPOJO;
 import com.bookstore.Service.CartService;
+import com.bookstore.Service.PurchaseService;
 import com.bookstore.Service.UserService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/user")
@@ -14,62 +25,70 @@ public class UserController {
 
     private final UserService userService;
     private final CartService cartService;
+    private final PurchaseService purchaseService;
 
-    public UserController(UserService userService, CartService cartService) {
+    public UserController(
+            UserService userService,
+            CartService cartService,
+            PurchaseService purchaseService
+    ) {
         this.userService = userService;
         this.cartService = cartService;
+        this.purchaseService = purchaseService;
     }
 
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@RequestBody UserPOJO user) {
+        user.setPermissions(PermissionType.USER);
         return userService.registerUser(user);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<String> updateUser(
-            @PathVariable Integer id,
-            @RequestBody UserPOJO user
-    ) {
-        return userService.updateUser(id, user);
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+        Integer userId = userService.getUserIdByUsername(authentication.getName());
+        return userService.getUserById(userId);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable Integer id) {
-        return userService.deleteUser(id);
+    @GetMapping("/cart")
+    public ResponseEntity<?> getCurrentUserCart(Authentication authentication) {
+        Integer userId = userService.getUserIdByUsername(authentication.getName());
+        return cartService.getUserCart(userId);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Integer id) {
-        return userService.getUserById(id);
-    }
-
-    @GetMapping("/{id}/cart")
-    public ResponseEntity<?> getUserCart(@PathVariable Integer id) {
-        return cartService.getUserCart(id);
-    }
-
-    @PostMapping("/{id}/cart")
-    public ResponseEntity<String> addToUserCart(
-            @PathVariable Integer id,
+    @PostMapping("/cart")
+    public ResponseEntity<String> addToCurrentUserCart(
+            Authentication authentication,
             @RequestBody CartItemPOJO cartItem
     ) {
-        return cartService.addToUserCart(id, cartItem);
+        Integer userId = userService.getUserIdByUsername(authentication.getName());
+        return cartService.addToUserCart(userId, cartItem);
     }
 
-    @PutMapping("/{id}/cart")
-    public ResponseEntity<String> updateCartItemQuantity(
-            @PathVariable Integer id,
+    @PutMapping("/cart")
+    public ResponseEntity<String> updateCurrentUserCartItem(
+            Authentication authentication,
             @RequestBody CartItemPOJO cartItem
     ) {
-        return cartService.updateCartItemQuantity(id, cartItem);
+        Integer userId = userService.getUserIdByUsername(authentication.getName());
+        return cartService.updateCartItemQuantity(userId, cartItem);
     }
 
-    @DeleteMapping("/{id}/cart")
-    public ResponseEntity<String> deleteFromUserCart(
-            @PathVariable Integer id,
+    @DeleteMapping("/cart")
+    public ResponseEntity<String> deleteFromCurrentUserCart(
+            Authentication authentication,
             @RequestParam String productId,
             @RequestParam ProductType prodType
     ) {
-        return cartService.deleteFromUserCart(id, productId, prodType);
+        Integer userId = userService.getUserIdByUsername(authentication.getName());
+        return cartService.deleteFromUserCart(userId, productId, prodType);
+    }
+
+    @PostMapping("/purchase")
+    public ResponseEntity<String> purchaseCurrentUserCart(
+            Authentication authentication,
+            @RequestBody PurchaseRequestPOJO request
+    ) {
+        Integer userId = userService.getUserIdByUsername(authentication.getName());
+        return purchaseService.purchaseUserCart(userId, request);
     }
 }
