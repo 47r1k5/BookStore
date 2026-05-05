@@ -2,6 +2,7 @@ package com.bookstore.Entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serial;
@@ -10,6 +11,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @Entity
+@NoArgsConstructor
 @Table(name = "moviegenre")
 public class MoviegenreEntity implements Serializable {
     @Serial
@@ -28,5 +30,8 @@ public class MoviegenreEntity implements Serializable {
     @JoinColumn(name = "genre_id")
     private GenreEntity genre;
 
-
+    public MoviegenreEntity(MovieEntity movie, GenreEntity genre) {
+        this.movie = movie;
+        this.genre = genre;
+    }
 }

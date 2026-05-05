@@ -2,6 +2,7 @@ package com.bookstore.Entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
@@ -14,6 +15,7 @@ import java.util.Set;
 @Getter
 @Setter
 @Entity
+@NoArgsConstructor
 @Table(name = "music")
 public class MusicEntity implements Serializable {
     @Serial
@@ -40,8 +42,11 @@ public class MusicEntity implements Serializable {
     @Column(name = "artist")
     private List<String> artist;
 
-    @OneToMany(mappedBy = "music")
-    private Set<MusicgenreEntity> musicgenres = new LinkedHashSet<>();
-
-
+    public MusicEntity(String title, Short releaseYear, Integer price, Short stock, List<String> artist) {
+        this.title = title;
+        this.releaseYear = releaseYear;
+        this.price = price;
+        this.stock = stock;
+        this.artist = artist;
+    }
 }

@@ -1,9 +1,16 @@
 package com.bookstore.Entity;
 
+import com.bookstore.CompositeType.NameTypeArrayUserType;
+import com.bookstore.CompositeType.NameTypeUserType;
+import com.bookstore.CompositeType.PersonName;
+import com.bookstore.Enum.PermissionType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
+import org.hibernate.type.SqlTypes;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -36,23 +43,20 @@ public class UserEntity implements Serializable {
     @Column(name = "pass", nullable = false, length = 20)
     private String pass;
 
+    @Type(value = NameTypeUserType.class)
     @Column(name = "fullname", columnDefinition = "name_type")
-    private Object fullname;
+    private PersonName fullname;
 
-    @ColumnDefault("'user'")
-    @Column(name = "permissions", columnDefinition = "perm_type")
-    private Object permissions;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @ColumnDefault("'USER'")
+    @Column(name = "permissions", columnDefinition = "perm_type", nullable = false)
+    private PermissionType permissions;
 
     @ColumnDefault("false")
     @Column(name = "regular")
     private Boolean regular;
 
-    @OneToMany
-    @JoinColumn(name = "cart_id")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<CartEntity> carts = new LinkedHashSet<>();
-
-    @OneToMany(mappedBy = "user")
-    private Set<PurchaseEntity> purchases = new LinkedHashSet<>();
-
-
 }

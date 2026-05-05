@@ -1,8 +1,7 @@
 package com.bookstore.Entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -10,6 +9,8 @@ import java.io.Serializable;
 @Getter
 @Setter
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "bookgenre")
 public class BookgenreEntity implements Serializable {
     @Serial
@@ -28,5 +29,8 @@ public class BookgenreEntity implements Serializable {
     @JoinColumn(name = "genre_id")
     private GenreEntity genre;
 
-
+    public BookgenreEntity(BookEntity bookIsbn, GenreEntity genre) {
+        this.bookIsbn = bookIsbn;
+        this.genre = genre;
+    }
 }

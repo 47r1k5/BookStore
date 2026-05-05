@@ -1,8 +1,12 @@
-package com.bookstore.Entity;
+/*package com.bookstore.Entity;
 
+import com.bookstore.CompositeType.Address;
+import com.bookstore.Enum.PayOptionType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -24,17 +28,15 @@ public class PurchaseEntity implements Serializable {
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
-    @Column(name = "payment_option", columnDefinition = "pay_option_type not null")
-    private Object paymentOption;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "payment_option", columnDefinition = "pay_option_type not null", nullable = false)
+    private PayOptionType paymentOption;
 
     @Column(name = "address", columnDefinition = "address_type not null")
-    private Object address;
+    private Address address;
 
     @Column(name = "purchase_date")
     private LocalDate purchaseDate;
 
-    @Column(name = "cart", columnDefinition = "cart[]")
-    private Object cart;
-
-
-}
+}*/

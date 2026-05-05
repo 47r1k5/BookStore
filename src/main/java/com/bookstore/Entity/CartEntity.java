@@ -12,22 +12,18 @@ import java.io.Serializable;
 @Entity
 @Table(name = "cart")
 public class CartEntity implements Serializable {
+
     @Serial
     private static final long serialVersionUID = -6030974065662115127L;
-    @Id
+
+    @EmbeddedId
+    private CartId id;
+
+    @MapsId("cartId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @SequenceGenerator(name = "cart_id_gen", sequenceName = "genre_genre_id_seq", allocationSize = 1)
-    @JoinColumn(name = "cart_id")
-    private BsUser cart;
-
-    @Column(name = "product_id", length = Integer.MAX_VALUE)
-    private String productId;
-
-    @Column(name = "prod_type", columnDefinition = "product_type")
-    private Object prodType;
+    @JoinColumn(name = "cart_id", referencedColumnName = "user_id", nullable = false)
+    private UserEntity user;
 
     @Column(name = "quantity")
     private Short quantity;
-
-
 }

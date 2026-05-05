@@ -28,18 +28,4 @@ public class GenreEntity implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "main_genre_id")
     private GenreEntity mainGenre;
-
-    @OneToMany(mappedBy = "genre")
-    private Set<BookgenreEntity> bookgenres = new LinkedHashSet<>();
-
-    @OneToMany(mappedBy = "mainGenre")
-    private Set<GenreEntity> genres = new LinkedHashSet<>();
-
-    @OneToMany(mappedBy = "genre")
-    private Set<MoviegenreEntity> moviegenres = new LinkedHashSet<>();
-
-    @OneToMany(mappedBy = "genre")
-    private Set<MusicgenreEntity> musicgenres = new LinkedHashSet<>();
-
-
 }
