@@ -40,7 +40,7 @@ public class UserEntity implements Serializable {
     @Column(name = "email", nullable = false, length = 250)
     private String email;
 
-    @Column(name = "pass", nullable = false, length = 20)
+    @Column(name = "pass", nullable = false)
     private String pass;
 
     @Type(value = NameTypeUserType.class)

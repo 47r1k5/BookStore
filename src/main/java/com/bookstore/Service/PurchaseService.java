@@ -20,7 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
+
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -52,70 +52,74 @@ public class PurchaseService {
         this.musicRepository = musicRepository;
     }
 
-    @Transactional
+    // Non-transactional wrapper — catches exceptions thrown by the transactional core
+    // and converts them to ResponseEntity without triggering UnexpectedRollbackException.
     public ResponseEntity<String> purchaseUserCart(Integer userId, PurchaseRequestPOJO request) {
         try {
-            if (request == null) {
-                return new ResponseEntity<>("Purchase request cannot be null", HttpStatus.BAD_REQUEST);
-            }
-
-            if (request.getPaymentOption() == null) {
-                return new ResponseEntity<>("Payment option cannot be empty", HttpStatus.BAD_REQUEST);
-            }
-
-            if (request.getAddress() == null) {
-                return new ResponseEntity<>("Address cannot be empty", HttpStatus.BAD_REQUEST);
-            }
-
-            UserEntity user = userRepository.findById(userId).orElse(null);
-
-            if (user == null) {
-                return new ResponseEntity<>("User not found with ID: " + userId, HttpStatus.NOT_FOUND);
-            }
-
-            List<CartEntity> cartItems = cartRepository.findByUserId(userId);
-
-            if (cartItems.isEmpty()) {
-                return new ResponseEntity<>("User cart is empty", HttpStatus.BAD_REQUEST);
-            }
-
-            List<PurchaseCartItem> purchaseCartItems = new ArrayList<>();
-
-            for (CartEntity cartItem : cartItems) {
-                validateCartItem(cartItem);
-                validateAndDecreaseStock(cartItem);
-
-                purchaseCartItems.add(new PurchaseCartItem(
-                        cartItem.getId().getCartId(),
-                        cartItem.getId().getProductId(),
-                        cartItem.getId().getProdType(),
-                        cartItem.getQuantity()
-                ));
-            }
-
-            PurchaseEntity purchase = new PurchaseEntity();
-            purchase.setUser(user);
-            purchase.setPaymentOption(request.getPaymentOption());
-            purchase.setAddress(request.getAddress());
-            purchase.setPurchaseDate(LocalDate.now());
-            purchase.setCart(purchaseCartItems);
-
-            purchaseRepository.save(purchase);
-            cartRepository.deleteAll(cartItems);
-
-            return new ResponseEntity<>(
-                    "Purchase was successful. Purchase ID: " + purchase.getId(),
-                    HttpStatus.OK
-            );
-
+            return doPurchase(userId, request);
         } catch (Exception e) {
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-
             return new ResponseEntity<>(
                     "Purchase failed: " + e.getMessage(),
                     HttpStatus.BAD_REQUEST
             );
         }
+    }
+
+    // Transactional core — throws on any error so @Transactional can roll back cleanly.
+    @Transactional
+    public ResponseEntity<String> doPurchase(Integer userId, PurchaseRequestPOJO request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Purchase request cannot be null");
+        }
+
+        if (request.getPaymentOption() == null) {
+            throw new IllegalArgumentException("Payment option cannot be empty");
+        }
+
+        if (request.getAddress() == null) {
+            throw new IllegalArgumentException("Address cannot be empty");
+        }
+
+        UserEntity user = userRepository.findById(userId).orElse(null);
+
+        if (user == null) {
+            throw new IllegalArgumentException("User not found with ID: " + userId);
+        }
+
+        List<CartEntity> cartItems = cartRepository.findByUserId(userId);
+
+        if (cartItems.isEmpty()) {
+            throw new IllegalArgumentException("User cart is empty");
+        }
+
+        List<PurchaseCartItem> purchaseCartItems = new ArrayList<>();
+
+        for (CartEntity cartItem : cartItems) {
+            validateCartItem(cartItem);
+            validateAndDecreaseStock(cartItem);
+
+            purchaseCartItems.add(new PurchaseCartItem(
+                    cartItem.getId().getCartId(),
+                    cartItem.getId().getProductId(),
+                    cartItem.getId().getProdType(),
+                    cartItem.getQuantity()
+            ));
+        }
+
+        PurchaseEntity purchase = new PurchaseEntity();
+        purchase.setUser(user);
+        purchase.setPaymentOption(request.getPaymentOption());
+        purchase.setAddress(request.getAddress());
+        purchase.setPurchaseDate(LocalDate.now());
+        purchase.setCart(purchaseCartItems);
+
+        purchaseRepository.save(purchase);
+        cartRepository.deleteAll(cartItems);
+
+        return new ResponseEntity<>(
+                "Purchase was successful. Purchase ID: " + purchase.getId(),
+                HttpStatus.OK
+        );
     }
 
     public ResponseEntity<List<PurchasePOJO>> getAllPurchases() {
